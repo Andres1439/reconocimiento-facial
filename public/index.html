@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Asistencia — reconocimiento facial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #070a12;
+      --bg-mid: #0f1419;
+      --surface: rgba(255, 255, 255, 0.05);
+      --surface-hover: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #818cf8;
+      --accent-dim: rgba(129, 140, 248, 0.15);
+      --accent-glow: rgba(129, 140, 248, 0.35);
+      --ok: #34d399;
+      --ok-bg: rgba(52, 211, 153, 0.12);
+      --warn: #fbbf24;
+      --err: #f87171;
+      --err-bg: rgba(248, 113, 113, 0.12);
+      --radius-lg: 20px;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      --font: "DM Sans", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .bg-gradient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(99, 102, 241, 0.22), transparent 50%),
+        radial-gradient(ellipse 80% 50% at 100% 50%, rgba(52, 211, 153, 0.06), transparent 45%),
+        radial-gradient(ellipse 60% 40% at 0% 80%, rgba(129, 140, 248, 0.08), transparent 40%);
+    }
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+    header {
+      margin-bottom: 28px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(145deg, var(--accent-dim), rgba(255,255,255,0.04));
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      font-size: 1.25rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+      line-height: 1.2;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: 0;
+      max-width: 520px;
+    }
+    .pill-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .pill-status[data-ready="true"] {
+      color: var(--ok);
+      border-color: rgba(52, 211, 153, 0.25);
+      background: var(--ok-bg);
+    }
+    .pill-status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: pulse 2s ease infinite;
+    }
+    .pill-status[data-ready="true"] .dot {
+      background: var(--ok);
+      animation: none;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    .shell {
+      display: grid;
+      gap: 20px;
+    }
+    @media (min-width: 900px) {
+      .shell { grid-template-columns: minmax(280px, 420px) 1fr; align-items: start; }
+    }
+
+    .card {
+      background: linear-gradient(165deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .card h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+      color: var(--muted);
+      margin: 0 0 14px;
+    }
+    video {
+      width: 100%;
+      max-width: 100%;
+      border-radius: var(--radius);
+      background: #000;
+      display: block;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border: 1px solid var(--border-strong);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+    }
+    input[type="text"], input[type="number"] {
+      padding: 11px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      min-width: 180px;
+      width: 100%;
+      max-width: 320px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: rgba(129, 140, 248, 0.5);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    /* Entrada / Salida: control segmentado (el <select> nativo no deja estilizar el menú desplegable en la mayoría de navegadores) */
+    .evt-segmented {
+      display: inline-flex;
+      padding: 4px;
+      gap: 4px;
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .evt-seg {
+      position: relative;
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+      box-shadow: none;
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+    }
+    .evt-seg:hover:not(.active) {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      transform: none;
+    }
+    .evt-seg.active[data-value="in"] {
+      color: #ecfdf5;
+      background: linear-gradient(180deg, rgba(52, 211, 153, 0.35), rgba(16, 185, 129, 0.2));
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      box-shadow: 0 4px 16px rgba(52, 211, 153, 0.15);
+    }
+    .evt-seg.active[data-value="out"] {
+      color: #fffbeb;
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.28), rgba(245, 158, 11, 0.15));
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      box-shadow: 0 4px 16px rgba(251, 191, 36, 0.12);
+    }
+    .evt-seg:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .evt-seg.active {
+      transform: none;
+    }
+    button.evt-seg:hover:not(:disabled) {
+      transform: none;
+    }
+    button {
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: linear-gradient(180deg, #8b93f9 0%, #6366f1 100%);
+      color: #fff;
+      font-weight: 600;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px var(--accent-glow);
+    }
+    button.secondary {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text);
+      box-shadow: none;
+    }
+    button.secondary:hover:not(:disabled) {
+      background: var(--surface-hover);
+      box-shadow: none;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .msg { font-size: 0.88rem; margin-top: 12px; min-height: 1.4em; color: var(--muted); }
+    .msg.ok { color: var(--ok); }
+    .msg.err { color: var(--err); }
+
+    /* Tabs */
+    .tabs-wrap { margin-bottom: 6px; }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .tab {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 14px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      box-shadow: none;
+    }
+    .tab:hover:not(.active) {
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+      transform: none;
+    }
+    .tab.active {
+      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+      transform: none;
+    }
+    .panel { display: none; animation: fadeIn 0.25s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    ul { list-style: none; padding: 0; margin: 0; }
+    .person {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      transition: border-color 0.2s;
+    }
+    .person:hover { border-color: var(--border-strong); }
+    .person span { font-weight: 600; font-size: 0.95rem; }
+    .person small { color: var(--muted); font-size: 0.75rem; display: block; margin-top: 4px; }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.7rem;
+      background: rgba(0,0,0,0.25);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge-in {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--ok-bg);
+      color: var(--ok);
+    }
+    .badge-out {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(251, 191, 36, 0.12);
+      color: var(--warn);
+    }
+
+    /* Toasts */
+    .toast-host {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: min(380px, calc(100vw - 40px));
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      padding: 16px 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: linear-gradient(165deg, rgba(22, 28, 40, 0.98), rgba(15, 20, 30, 0.98));
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(16px);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      animation: toastIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .toast.success { border-color: rgba(52, 211, 153, 0.35); }
+    .toast.error { border-color: rgba(248, 113, 113, 0.35); }
+    .toast-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .toast.success .toast-icon { background: var(--ok-bg); }
+    .toast.error .toast-icon { background: var(--err-bg); }
+    .toast-title { font-weight: 700; font-size: 0.95rem; margin: 0 0 4px; letter-spacing: -0.02em; }
+    .toast-body { font-size: 0.86rem; color: var(--muted); margin: 0; line-height: 1.45; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(12px) scale(0.96); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateX(8px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient" aria-hidden="true"></div>
+  <div class="toast-host" id="toastHost" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">◎</div>
+        <div>
+          <h1>Control de asistencia</h1>
+          <p class="sub">Face-api.js en el navegador. Datos locales en SQLite.</p>
+        </div>
+      </div>
+      <div class="pill-status" id="modelStatusPill" data-ready="false">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="modelStatus">Cargando modelos…</span>
+      </div>
+    </header>
+
+    <div class="shell">
+      <div class="card">
+        <h2>Vista en vivo</h2>
+        <video id="video" autoplay muted playsinline></video>
+        <div class="row">
+          <button type="button" id="btnCam">Iniciar cámara</button>
+          <button type="button" class="secondary" id="btnStop">Detener</button>
+        </div>
+        <p class="msg" id="camMsg"></p>
+      </div>
+
+      <div class="card">
+        <div class="tabs-wrap">
+          <div class="tabs" role="tablist" aria-label="Secciones">
+            <button type="button" class="tab active" role="tab" id="tabBtnAttendance" aria-selected="true" data-panel="panelAttendance">Asistencia</button>
+            <button type="button" class="tab" role="tab" id="tabBtnRegister" aria-selected="false" data-panel="panelRegister">Registro</button>
+            <button type="button" class="tab" role="tab" id="tabBtnPeople" aria-selected="false" data-panel="panelPeople">Personas</button>
+          </div>
+        </div>
+
+        <div id="panelAttendance" class="panel active" role="tabpanel" aria-labelledby="tabBtnAttendance">
+          <h2>Marcar entrada o salida</h2>
+          <input type="hidden" id="evtType" value="in" />
+          <div class="evt-segmented" role="radiogroup" aria-label="Tipo de evento">
+            <button type="button" class="evt-seg active" role="radio" aria-checked="true" data-value="in" id="evtSegIn">Entrada</button>
+            <button type="button" class="evt-seg" role="radio" aria-checked="false" data-value="out" id="evtSegOut">Salida</button>
+          </div>
+          <div class="row">
+            <button type="button" id="btnMark" disabled>Reconocer y registrar</button>
+          </div>
+          <p class="msg" id="markMsg"></p>
+
+          <h2 style="margin-top: 22px">Últimos registros</h2>
+          <div class="row" style="margin-top: 0">
+            <button type="button" class="secondary" id="btnRefreshAtt">Actualizar tabla</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Persona</th><th>Tipo</th><th>Fecha</th></tr></thead>
+              <tbody id="attBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="panelRegister" class="panel" role="tabpanel" aria-labelledby="tabBtnRegister" hidden>
+          <h2>Registrar nueva persona</h2>
+          <input type="text" id="enrollName" placeholder="Nombre completo" autocomplete="name" />
+          <div class="row">
+            <button type="button" id="btnEnroll" disabled>Guardar rostro</button>
+          </div>
+          <p class="msg" id="enrollMsg"></p>
+        </div>
+
+        <div id="panelPeople" class="panel" role="tabpanel" aria-labelledby="tabBtnPeople" hidden>
+          <h2>Personas enroladas</h2>
+          <div class="row" style="margin-top: 0">
+            <button type="button" class="secondary" id="btnRefreshPeople">Actualizar lista</button>
+          </div>
+          <ul id="peopleList" style="margin-top: 14px"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script>
+    const MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
+    const video = document.getElementById("video");
+    const modelStatus = document.getElementById("modelStatus");
+    const modelStatusPill = document.getElementById("modelStatusPill");
+    const btnCam = document.getElementById("btnCam");
+    const btnStop = document.getElementById("btnStop");
+    const btnEnroll = document.getElementById("btnEnroll");
+    const btnMark = document.getElementById("btnMark");
+    const camMsg = document.getElementById("camMsg");
+    const enrollMsg = document.getElementById("enrollMsg");
+    const markMsg = document.getElementById("markMsg");
+    const toastHost = document.getElementById("toastHost");
+    const evtTypeInput = document.getElementById("evtType");
+    const evtSegButtons = document.querySelectorAll(".evt-seg");
+
+    evtSegButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = btn.getAttribute("data-value");
+        evtTypeInput.value = v;
+        evtSegButtons.forEach((b) => {
+          const on = b === btn;
+          b.classList.toggle("active", on);
+          b.setAttribute("aria-checked", on ? "true" : "false");
+        });
+      });
+    });
+
+    let stream = null;
+    let modelsReady = false;
+
+    function showToast(title, body, variant) {
+      const el = document.createElement("div");
+      el.className = "toast " + (variant === "error" ? "error" : "success");
+      el.setAttribute("role", "alert");
+      const icon = variant === "error" ? "✕" : "✓";
+      el.innerHTML =
+        '<div class="toast-icon">' + icon + '</div><div><p class="toast-title"></p><p class="toast-body"></p></div>';
+      el.querySelector(".toast-title").textContent = title;
+      el.querySelector(".toast-body").textContent = body || "";
+      toastHost.appendChild(el);
+      const t = setTimeout(() => {
+        el.style.animation = "toastOut 0.25s ease forwards";
+        setTimeout(() => el.remove(), 250);
+      }, 4200);
+      el.addEventListener("click", () => {
+        clearTimeout(t);
+        el.remove();
+      });
+    }
+
+    const tabButtons = document.querySelectorAll(".tab[data-panel]");
+    const panels = {
+      panelAttendance: document.getElementById("panelAttendance"),
+      panelRegister: document.getElementById("panelRegister"),
+      panelPeople: document.getElementById("panelPeople"),
+    };
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-panel");
+        tabButtons.forEach((b) => {
+          const on = b === btn;
+          b.classList.toggle("active", on);
+          b.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        Object.entries(panels).forEach(([key, panel]) => {
+          const on = key === id;
+          panel.classList.toggle("active", on);
+          panel.hidden = !on;
+        });
+      });
+    });
+
+    async function loadModels() {
+      try {
+        if (typeof faceapi === "undefined") {
+          throw new Error("face-api.js no cargó (revisa red / bloqueador / consola F12).");
+        }
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+        modelsReady = true;
+        modelStatus.textContent = "Modelos listos";
+        modelStatusPill.setAttribute("data-ready", "true");
+        btnEnroll.disabled = false;
+        btnMark.disabled = false;
+      } catch (e) {
+        modelStatus.textContent = "Error: " + e.message;
+        modelStatusPill.setAttribute("data-ready", "false");
+      }
+    }
+
+    async function getDescriptor() {
+      const det = await faceapi
+        .detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+      if (!det) return null;
+      return Array.from(det.descriptor);
+    }
+
+    btnCam.onclick = async () => {
+      camMsg.textContent = "";
+      camMsg.className = "msg";
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        video.srcObject = stream;
+      } catch (e) {
+        camMsg.textContent = "No se pudo abrir la cámara: " + e.message;
+        camMsg.className = "msg err";
+        showToast("Cámara no disponible", e.message, "error");
+      }
+    };
+
+    btnStop.onclick = () => {
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+        stream = null;
+        video.srcObject = null;
+      }
+    };
+
+    document.getElementById("btnEnroll").onclick = async () => {
+      enrollMsg.textContent = "";
+      enrollMsg.className = "msg";
+      const name = document.getElementById("enrollName").value.trim();
+      if (!name) {
+        enrollMsg.textContent = "Escribe un nombre.";
+        enrollMsg.className = "msg err";
+        showToast("Falta el nombre", "Introduce el nombre de la persona antes de guardar.", "error");
+        return;
+      }
+      if (!modelsReady) return;
+      const desc = await getDescriptor();
+      if (!desc) {
+        enrollMsg.textContent = "No se detectó un rostro. Ajusta luz y posición.";
+        enrollMsg.className = "msg err";
+        showToast("Sin rostro detectado", "Centra el rostro frente a la cámara e inténtalo de nuevo.", "error");
+        return;
+      }
+      const r = await fetch("/api/people", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, descriptor: desc }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        enrollMsg.textContent = j.error || "Error";
+        enrollMsg.className = "msg err";
+        showToast("No se pudo guardar", j.error || "Error del servidor", "error");
+        return;
+      }
+      enrollMsg.textContent = "Guardado: " + name;
+      enrollMsg.className = "msg ok";
+      showToast("Persona registrada", name + " se ha añadido correctamente.", "success");
+      loadPeople();
+    };
+
+    document.getElementById("btnMark").onclick = async () => {
+      markMsg.textContent = "";
+      markMsg.className = "msg";
+      if (!modelsReady) return;
+      const desc = await getDescriptor();
+      if (!desc) {
+        markMsg.textContent = "No se detectó un rostro.";
+        markMsg.className = "msg err";
+        showToast("Sin rostro detectado", "No hay una cara clara en cámara.", "error");
+        return;
+      }
+      const r = await fetch("/api/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descriptor: desc }),
+      });
+      const j = await r.json();
+      if (!j.match) {
+        markMsg.textContent = "Sin coincidencia (distancia " + (j.distance?.toFixed?.(3) ?? "?") + ").";
+        markMsg.className = "msg err";
+        showToast("Sin coincidencia", "No hay una persona registrada que coincida con este rostro.", "error");
+        return;
+      }
+      const event_type = evtTypeInput.value;
+      const ar = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person_name: j.name, event_type }),
+      });
+      const aj = await ar.json();
+      if (!ar.ok) {
+        markMsg.textContent = aj.error || "Error al registrar";
+        markMsg.className = "msg err";
+        showToast("Error al registrar", aj.error || "No se pudo guardar el evento.", "error");
+        return;
+      }
+      const tipoLabel = event_type === "in" ? "Entrada" : "Salida";
+      markMsg.textContent = "Registrado: " + j.name + " (" + event_type + ")";
+      markMsg.className = "msg ok";
+      showToast(tipoLabel + " registrada", j.name + " — " + tipoLabel.toLowerCase() + " guardada correctamente.", "success");
+      loadAttendance();
+    };
+
+    async function loadPeople() {
+      const r = await fetch("/api/people");
+      const list = await r.json();
+      const ul = document.getElementById("peopleList");
+      ul.innerHTML = "";
+      if (!list.length) {
+        const li = document.createElement("li");
+        li.className = "person";
+        li.innerHTML = "<div><span>Nadie enrolado aún</span><small>Añade personas en la pestaña Registro</small></div>";
+        ul.appendChild(li);
+        return;
+      }
+      for (const p of list) {
+        const li = document.createElement("li");
+        li.className = "person";
+        const left = document.createElement("div");
+        const nameEl = document.createElement("span");
+        nameEl.textContent = p.name;
+        const dateEl = document.createElement("small");
+        dateEl.textContent = p.created_at || "";
+        left.appendChild(nameEl);
+        left.appendChild(dateEl);
+        const del = document.createElement("button");
+        del.className = "secondary";
+        del.textContent = "Eliminar";
+        del.onclick = async () => {
+          if (!confirm("¿Eliminar " + p.name + "?")) return;
+          await fetch("/api/people/" + encodeURIComponent(p.name), { method: "DELETE" });
+          showToast("Persona eliminada", p.name + " se ha quitado del sistema.", "success");
+          loadPeople();
+        };
+        li.appendChild(left);
+        li.appendChild(del);
+        ul.appendChild(li);
+      }
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function badgeForType(t) {
+      if (t === "in") return '<span class="badge-in">Entrada</span>';
+      if (t === "out") return '<span class="badge-out">Salida</span>';
+      return escapeHtml(t);
+    }
+
+    async function loadAttendance() {
+      const r = await fetch("/api/attendance");
+      const rows = await r.json();
+      const tb = document.getElementById("attBody");
+      tb.innerHTML = "";
+      for (const row of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + row.id + "</td><td>" + escapeHtml(row.person_name) + "</td><td>" + badgeForType(row.event_type) + "</td><td>" + escapeHtml(row.created_at) + "</td>";
+        tb.appendChild(tr);
+      }
+    }
+
+    document.getElementById("btnRefreshPeople").onclick = loadPeople;
+    document.getElementById("btnRefreshAtt").onclick = loadAttendance;
+
+    loadModels().then(() => {
+      loadPeople();
+      loadAttendance();
+    });
+  </script>
+</body>
+</html>
