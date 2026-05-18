@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createDatabase } from "./server/db.js";
 import { createApp } from "./server/app.js";
 

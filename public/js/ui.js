@@ -43,7 +43,7 @@ export function setEnrollLoading(loading, message) {
   const overlay = document.getElementById("enrollOverlay");
   const overlayText = document.getElementById("enrollOverlayText");
   const btn = document.getElementById("btnEnroll");
-  const enrollName = document.getElementById("enrollName");
+  const enrollForm = document.getElementById("enrollForm");
   const result = document.getElementById("enrollResult");
 
   if (overlay) {
@@ -52,7 +52,11 @@ export function setEnrollLoading(loading, message) {
   }
   if (overlayText && message) overlayText.textContent = message;
   setButtonLoading(btn, loading, "Guardando…");
-  if (enrollName) enrollName.disabled = loading;
+  if (enrollForm) {
+    enrollForm.querySelectorAll("input, select, textarea").forEach((el) => {
+      el.disabled = loading;
+    });
+  }
   if (loading && result) result.hidden = true;
 }
 

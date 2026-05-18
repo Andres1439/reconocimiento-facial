@@ -5,6 +5,8 @@ import { initAuth, registerAuthRoutes, requireAuth, requireAuthPage } from "./au
 import { registerPeopleRoutes } from "./routes/people.js";
 import { registerAttendanceRoutes } from "./routes/attendance.js";
 import { registerPageRoutes } from "./routes/pages.js";
+import { registerSyncRoutes } from "./routes/sync.js";
+import { getSyncStatus } from "./services/aws-sync.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(__dirname, "..", "public");
@@ -29,6 +31,16 @@ export function createApp(db) {
 
   registerPeopleRoutes(app, db, auth);
   registerAttendanceRoutes(app, db, auth);
+  registerSyncRoutes(app, db, auth);
+
+  const aws = getSyncStatus();
+  if (aws.enabled) {
+    console.log(
+      `[aws] Sincronización activa → ${aws.peopleTable}, ${aws.attendanceTable} (${aws.region})`
+    );
+  } else {
+    console.log("[aws] Sincronización desactivada (configura .env para DynamoDB)");
+  }
 
   return app;
 }

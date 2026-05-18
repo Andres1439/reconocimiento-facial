@@ -1,4 +1,5 @@
 import { MODEL_URL, MODEL_LOAD_TIMEOUT_MS } from "./config.js";
+import { verifyLiveness } from "./liveness.js";
 import { showToast } from "./ui.js";
 
 let modelsReady = false;
@@ -65,4 +66,13 @@ export async function getDescriptor(video) {
     .withFaceDescriptor();
   if (!det) return null;
   return Array.from(det.descriptor);
+}
+
+/** Anti-spoofing: parpadeo o movimiento antes de extraer el descriptor. */
+export async function getSecureDescriptor(video, onProgress) {
+  const live = await verifyLiveness(video, onProgress);
+  if (!live) return { error: "liveness" };
+  const descriptor = await getDescriptor(video);
+  if (!descriptor) return { error: "face" };
+  return { descriptor };
 }

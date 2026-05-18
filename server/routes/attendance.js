@@ -1,3 +1,5 @@
+import { syncAttendanceToAws } from "../services/aws-sync.js";
+
 export function registerAttendanceRoutes(app, db, auth) {
   app.post("/api/attendance", auth, (req, res) => {
     const { person_name, event_type } = req.body || {};
@@ -11,7 +13,14 @@ export function registerAttendanceRoutes(app, db, auth) {
         "INSERT INTO attendance (person_name, event_type) VALUES (?, ?)"
       )
       .run(person_name, event_type);
-    res.json({ ok: true, id: info.lastInsertRowid });
+    const id = info.lastInsertRowid;
+    const row = db
+      .prepare(
+        "SELECT id, person_name, event_type, created_at FROM attendance WHERE id = ?"
+      )
+      .get(id);
+    syncAttendanceToAws(row);
+    res.json({ ok: true, id });
   });
 
   app.get("/api/attendance", auth, (_req, res) => {

@@ -1,8 +1,9 @@
 import { initAuth, setupLogout } from "./auth-client.js";
 import { initCamera } from "./camera.js";
-import { loadModels, getDescriptor, isModelsReady } from "./face-models.js";
+import { loadModels, getSecureDescriptor, isModelsReady } from "./face-models.js";
+import { initAwsSyncUi } from "./aws-sync-client.js";
 import { initNavigation } from "./navigation.js";
-import { loadPeople, setupEnroll } from "./people.js";
+import { loadPeople, setupEditPerson, setupEnroll } from "./people.js";
 import { loadAttendance, setupEventTypeSegmented, setupMark } from "./attendance.js";
 import { exportAttendanceToExcel } from "./export-excel.js";
 import { setButtonLoading, showToast, withTableRefresh } from "./ui.js";
@@ -18,9 +19,9 @@ const camMsg = document.getElementById("camMsg");
 const enrollMsg = document.getElementById("enrollMsg");
 const markMsg = document.getElementById("markMsg");
 
-function guardedGetDescriptor(v) {
-  if (!isModelsReady()) return Promise.resolve(null);
-  return getDescriptor(v);
+function guardedGetDescriptor(v, onProgress) {
+  if (!isModelsReady()) return Promise.resolve({ error: "models" });
+  return getSecureDescriptor(v, onProgress);
 }
 
 initCamera({ video, btnCam, btnStop, camMsg });
@@ -41,6 +42,7 @@ setupEnroll({
   btnEnroll,
   getDescriptor: guardedGetDescriptor,
 });
+setupEditPerson();
 
 setupMark({
   video,
@@ -84,4 +86,5 @@ btnExportAtt.onclick = async () => {
 initAuth().then((ok) => {
   if (!ok) return;
   loadModels({ modelStatus, modelStatusPill, btnEnroll, btnMark });
+  initAwsSyncUi();
 });
