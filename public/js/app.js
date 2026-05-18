@@ -4,6 +4,8 @@ import { loadModels, getDescriptor, isModelsReady } from "./face-models.js";
 import { initNavigation } from "./navigation.js";
 import { loadPeople, setupEnroll } from "./people.js";
 import { loadAttendance, setupEventTypeSegmented, setupMark } from "./attendance.js";
+import { exportAttendanceToExcel } from "./export-excel.js";
+import { setButtonLoading, showToast, withTableRefresh } from "./ui.js";
 
 const video = document.getElementById("video");
 const modelStatus = document.getElementById("modelStatus");
@@ -48,8 +50,36 @@ setupMark({
   getEventType,
 });
 
-document.getElementById("btnRefreshPeople").onclick = loadPeople;
-document.getElementById("btnRefreshAtt").onclick = loadAttendance;
+const btnRefreshPeople = document.getElementById("btnRefreshPeople");
+const btnRefreshAtt = document.getElementById("btnRefreshAtt");
+const peopleTableOverlay = document.getElementById("peopleTableOverlay");
+const attTableOverlay = document.getElementById("attTableOverlay");
+
+btnRefreshPeople.onclick = () =>
+  withTableRefresh({
+    btn: btnRefreshPeople,
+    overlay: peopleTableOverlay,
+    loadFn: loadPeople,
+  });
+
+btnRefreshAtt.onclick = () =>
+  withTableRefresh({
+    btn: btnRefreshAtt,
+    overlay: attTableOverlay,
+    loadFn: loadAttendance,
+  });
+
+const btnExportAtt = document.getElementById("btnExportAtt");
+btnExportAtt.onclick = async () => {
+  try {
+    setButtonLoading(btnExportAtt, true, "Exportando…");
+    await exportAttendanceToExcel();
+  } catch (e) {
+    showToast("Error al exportar", e.message || "No se pudo generar el archivo.", "error");
+  } finally {
+    setButtonLoading(btnExportAtt, false);
+  }
+};
 
 initAuth().then((ok) => {
   if (!ok) return;

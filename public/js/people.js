@@ -1,6 +1,6 @@
 import { apiFetch } from "./api.js";
 import { isModelsReady } from "./face-models.js";
-import { showToast } from "./ui.js";
+import { hideEnrollSuccess, setEnrollLoading, showEnrollSuccess, showToast } from "./ui.js";
 import { escapeHtml } from "./utils.js";
 
 export async function loadPeople() {
@@ -45,6 +45,8 @@ export function setupEnroll({ video, enrollMsg, btnEnroll, getDescriptor }) {
   btnEnroll.onclick = async () => {
     enrollMsg.textContent = "";
     enrollMsg.className = "msg";
+    hideEnrollSuccess();
+
     if (!isModelsReady()) return;
     const name = document.getElementById("enrollName").value.trim();
     if (!name) {
@@ -53,32 +55,47 @@ export function setupEnroll({ video, enrollMsg, btnEnroll, getDescriptor }) {
       showToast("Falta el nombre", "Introduce el nombre de la persona antes de guardar.", "error");
       return;
     }
-    const desc = await getDescriptor(video);
-    if (!desc) {
-      enrollMsg.textContent = "No se detectó un rostro. Ajusta luz y posición.";
-      enrollMsg.className = "msg err";
+
+    try {
+      setEnrollLoading(true, "Analizando rostro…");
+      const desc = await getDescriptor(video);
+      if (!desc) {
+        enrollMsg.textContent = "No se detectó un rostro. Ajusta luz y posición.";
+        enrollMsg.className = "msg err";
+        showToast(
+          "Sin rostro detectado",
+          "Centra el rostro frente a la cámara e inténtalo de nuevo.",
+          "error"
+        );
+        return;
+      }
+
+      setEnrollLoading(true, "Guardando en el servidor…");
+      const r = await apiFetch("/api/people", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, descriptor: desc }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        enrollMsg.textContent = j.error || "Error";
+        enrollMsg.className = "msg err";
+        showToast("No se pudo guardar", j.error || "Error del servidor", "error");
+        return;
+      }
+
+      enrollMsg.textContent = "";
+      enrollMsg.className = "msg";
+      showEnrollSuccess(name);
       showToast(
-        "Sin rostro detectado",
-        "Centra el rostro frente a la cámara e inténtalo de nuevo.",
-        "error"
+        "Registro finalizado",
+        name + " se ha registrado correctamente en el sistema.",
+        "success"
       );
-      return;
+      loadPeople();
+    } finally {
+      setEnrollLoading(false);
+      if (isModelsReady()) btnEnroll.disabled = false;
     }
-    const r = await apiFetch("/api/people", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, descriptor: desc }),
-    });
-    const j = await r.json();
-    if (!r.ok) {
-      enrollMsg.textContent = j.error || "Error";
-      enrollMsg.className = "msg err";
-      showToast("No se pudo guardar", j.error || "Error del servidor", "error");
-      return;
-    }
-    enrollMsg.textContent = "Guardado: " + name;
-    enrollMsg.className = "msg ok";
-    showToast("Persona registrada", name + " se ha añadido correctamente.", "success");
-    loadPeople();
   };
 }

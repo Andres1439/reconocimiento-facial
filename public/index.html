@@ -47,10 +47,26 @@
           <p class="view-desc">Captura el rostro y guarda un nombre nuevo.</p>
           <div class="view-grid two-cols">
             <div id="slotRegister" class="camera-slot"></div>
-            <div class="card">
+            <div class="card card-enroll" id="enrollCard">
+              <div class="enroll-overlay" id="enrollOverlay" hidden aria-live="polite" aria-busy="true">
+                <div class="spinner" aria-hidden="true"></div>
+                <p class="enroll-overlay-text" id="enrollOverlayText">Analizando rostro…</p>
+              </div>
               <h2>Datos</h2>
               <input type="text" id="enrollName" placeholder="Nombre completo" autocomplete="name" />
-              <div class="row"><button type="button" id="btnEnroll" disabled>Guardar rostro</button></div>
+              <div class="row enroll-actions">
+                <button type="button" class="btn-with-loader" id="btnEnroll" disabled>
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                  <span class="btn-label">Guardar rostro</span>
+                </button>
+              </div>
+              <div class="enroll-result" id="enrollResult" hidden role="status">
+                <div class="enroll-result-icon" aria-hidden="true">✓</div>
+                <div>
+                  <p class="enroll-result-title">Registro finalizado</p>
+                  <p class="enroll-result-name" id="enrollResultName"></p>
+                </div>
+              </div>
               <p class="msg" id="enrollMsg"></p>
             </div>
           </div>
@@ -58,17 +74,43 @@
         <div id="viewPeople" class="view" hidden>
           <h2 class="view-title">Personas registradas</h2>
           <p class="view-desc">Tabla de personas con rostro enrolado.</p>
-          <div class="card">
-            <div class="row table-actions" style="margin-top:0"><button type="button" class="secondary" id="btnRefreshPeople">Actualizar</button></div>
-            <div class="table-wrap"><table><thead><tr><th>ID</th><th>Nombre</th><th>Fecha registro</th><th></th></tr></thead><tbody id="peopleBody"></tbody></table></div>
+          <div class="card card-table">
+            <div class="row table-actions" style="margin-top:0">
+              <button type="button" class="secondary btn-with-loader" id="btnRefreshPeople">
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <span class="btn-label">Actualizar</span>
+              </button>
+            </div>
+            <div class="table-wrap">
+              <div class="table-overlay" id="peopleTableOverlay" hidden aria-live="polite" aria-busy="false">
+                <div class="spinner" aria-hidden="true"></div>
+                <p class="table-overlay-text">Actualizando…</p>
+              </div>
+              <table><thead><tr><th>ID</th><th>Nombre</th><th>Fecha registro</th><th></th></tr></thead><tbody id="peopleBody"></tbody></table>
+            </div>
           </div>
         </div>
         <div id="viewAttendance" class="view" hidden>
           <h2 class="view-title">Tabla de asistencia</h2>
           <p class="view-desc">Historial de entradas y salidas.</p>
-          <div class="card">
-            <div class="row table-actions" style="margin-top:0"><button type="button" class="secondary" id="btnRefreshAtt">Actualizar</button></div>
-            <div class="table-wrap"><table><thead><tr><th>ID</th><th>Persona</th><th>Tipo</th><th>Fecha</th></tr></thead><tbody id="attBody"></tbody></table></div>
+          <div class="card card-table">
+            <div class="row table-actions" style="margin-top:0">
+              <button type="button" class="secondary btn-with-loader" id="btnRefreshAtt">
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <span class="btn-label">Actualizar</span>
+              </button>
+              <button type="button" class="secondary btn-export btn-with-loader" id="btnExportAtt">
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <span class="btn-label">Exportar Excel</span>
+              </button>
+            </div>
+            <div class="table-wrap">
+              <div class="table-overlay" id="attTableOverlay" hidden aria-live="polite" aria-busy="false">
+                <div class="spinner" aria-hidden="true"></div>
+                <p class="table-overlay-text">Actualizando…</p>
+              </div>
+              <table><thead><tr><th>ID</th><th>Persona</th><th>Tipo</th><th>Fecha</th></tr></thead><tbody id="attBody"></tbody></table>
+            </div>
           </div>
         </div>
         <div id="viewMark" class="view" hidden>
@@ -83,7 +125,12 @@
                 <button type="button" class="evt-seg active" role="radio" aria-checked="true" data-value="in" id="evtSegIn">Entrada</button>
                 <button type="button" class="evt-seg" role="radio" aria-checked="false" data-value="out" id="evtSegOut">Salida</button>
               </div>
-              <div class="row" style="margin-top: 12px"><button type="button" id="btnMark" disabled>Reconocer y registrar</button></div>
+              <div class="row row-mark-action">
+                <button type="button" class="btn-with-loader" id="btnMark" disabled>
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                  <span class="btn-label">Reconocer y registrar</span>
+                </button>
+              </div>
               <p class="msg" id="markMsg"></p>
             </div>
           </div>
